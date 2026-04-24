@@ -1,0 +1,97 @@
+# Weather Prediction ML Project
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load dataset
+data = pd.read_csv("data/weather.csv")
+
+print("Dataset loaded successfully")
+print(data.head())
+
+# -------------------------------
+# Data Cleaning
+# -------------------------------
+
+# Fill missing values
+for col in data.select_dtypes(include=np.number).columns:
+    data[col] = data[col].fillna(data[col].mean())
+
+for col in data.select_dtypes(include='object').columns:
+    data[col] = data[col].fillna(data[col].mode()[0])
+
+# Remove duplicates
+data = data.drop_duplicates()
+
+# -------------------------------
+# Encoding
+# -------------------------------
+from sklearn.preprocessing import LabelEncoder
+
+encoder = LabelEncoder()
+for col in data.select_dtypes(include='object').columns:
+    data[col] = encoder.fit_transform(data[col])
+
+# -------------------------------
+# Scaling
+# -------------------------------
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+num_cols = data.select_dtypes(include=np.number).columns
+data[num_cols] = scaler.fit_transform(data[num_cols])
+
+# -------------------------------
+# Visualization
+# -------------------------------
+plt.figure(figsize=(10,5))
+sns.boxplot(data=data)
+plt.xticks(rotation=45)
+plt.title("Boxplot")
+plt.savefig("images/boxplot.png")
+plt.close()
+
+plt.figure(figsize=(10,5))
+sns.heatmap(data.corr(), annot=True)
+plt.title("Heatmap")
+plt.savefig("images/heatmap.png")
+plt.close()
+
+# -------------------------------
+# Machine Learning
+# -------------------------------
+
+# ⚠️ Change target column if needed
+target_column = data.columns[-1]
+
+X = data.drop(target_column, axis=1)
+y = data[target_column]
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Models
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "Decision Tree": DecisionTreeClassifier(),
+    "Random Forest": RandomForestClassifier()
+}
+
+print("\nModel Performance:")
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    acc = model.score(X_test, y_test)
+    print(f"{name}: {acc}")
+
+# Save cleaned dataset
+data.to_csv("data/cleaned_weather.csv", index=False)
+
+print("\nProject completed successfully 🚀")
